@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+"""Pin apps/commands to the Waybar. They sit behind one pin icon and slide out when you hover it.
+
+  barpin add "Obsidian" 󰠮 obsidian        add (name, icon glyph, command)
+  barpin rm obsidian                      remove (by id or name)
+  barpin ls                               list pins
+  barpin seed                             reset to the default set
+Icons are Nerd Font glyphs (browse them at https://www.nerdfonts.com/cheat-sheet; copy the glyph).
+Pins are stored in ~/.config/hypr/waybar/pins.json and compiled into the PinModules file Waybar includes.
+"""
+import json, os, re, signal, subprocess, sys
+
+W = os.path.expanduser("~/.config/hypr/waybar/")
+STORE, OUT = W + "pins.json", W + "PinModules"
+G = lambda cp: chr(cp)
+DEFAULT = [
+    ("Firefox", G(0xF0239), "firefox"), ("Terminal", G(0xF018D), "kitty"), ("Files", G(0xF024B), "nautilus"),
+    ("Neovim", G(0xE6AE), "kitty --class nvim -e nvim"), ("Obsidian", G(0xF082E), "obsidian"),
+    ("Signal", G(0xF0361), "signal-desktop"), ("Mail", G(0xF01EE), "proton-mail"),
+    ("SOC workspace", G(0xF0483), os.path.expanduser("~/.local/bin/soc")),
+    ("Settings", G(0xF0493), "env XDG_CURRENT_DESKTOP=GNOME gnome-control-center"),
+]
+
+
+def slug(s):
+    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
+
+
+def load():
+    if os.path.exists(STORE):
+        return json.load(open(STORE))
+    return [{"id": slug(n), "name": n, "glyph": g, "cmd": c} for n, g, c in DEFAULT]
+
+
+def save_and_build(pins):
+    json.dump(pins, open(STORE, "w"), ensure_ascii=False, indent=1)
+    mods = {"custom/pinhandle": {"format": G(0xF0403), "tooltip": True, "tooltip-format": "Pinned apps (hover)\nAdd more: barpin add",
+                                 "on-click": "true"}}
+    for p in pins:
+        mods[f"custom/pin-{p['id']}"] = {"format": p["glyph"], "tooltip": True, "tooltip-format": p["name"],
+                                          "on-click": p["cmd"], "interval": "once"}
+    mods["group/pins"] = {"orientation": "inherit",
+                          "drawer": {"transition-duration": 300, "children-class": "pin", "transition-left-to-right": False},
+                          "modules": ["custom/pinhandle"] + [f"custom/pin-{p['id']}" for p in pins]}
+    json.dump(mods, open(OUT, "w"), ensure_ascii=False, indent=1)
+    subprocess.run(["pkill", "-SIGUSR2", "waybar"])
+
+
+def main():
+    a = sys.argv[1:]
+    pins = load()
+    if not a or a[0] == "ls":
+        for p in pins:
+            print(f"{p['glyph']}  {p['id']:16} {p['cmd']}")
+        if not os.path.exists(OUT):
+            save_and_build(pins)
+    elif a[0] == "seed":
+        save_and_build([{"id": slug(n), "name": n, "glyph": g, "cmd": c} for n, g, c in DEFAULT]); print("reset to defaults")
+    elif a[0] == "add" and len(a) >= 4:
+        name, glyph, cmd = a[1], a[2], " ".join(a[3:])
+        pins = [p for p in pins if p["id"] != slug(name)] + [{"id": slug(name), "name": name, "glyph": glyph, "cmd": cmd}]
+        save_and_build(pins); print(f"pinned {name}")
+    elif a[0] == "rm" and len(a) == 2:
+        keep = [p for p in pins if a[1] not in (p["id"], p["name"], slug(a[1]))]
+        print("removed" if len(keep) != len(pins) else "no such pin"); save_and_build(keep)
+    else:
+        print(__doc__)
+
+
+if __name__ == "__main__":
+    main()

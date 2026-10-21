@@ -797,6 +797,15 @@ usb() {
   sed -i 's/^IPCAllowedUsers=.*/IPCAllowedUsers=root '"$USER_NAME"'/' /etc/usbguard/usbguard-daemon.conf
   systemctl enable --now usbguard
   systemctl restart usbguard
+  # Allow/deny popup for new devices (user service); needs yad for the dialog.
+  apt_install yad
+  sudo -u "$USER_NAME" install -d "$USER_HOME/.local/bin" "$USER_HOME/.config/systemd/user"
+  sudo -u "$USER_NAME" install -m 755 "$HERE/bin/usbguard-prompt" "$USER_HOME/.local/bin/usbguard-prompt"
+  sudo -u "$USER_NAME" install -m 644 "$HERE/dotfiles/usbguard-prompt.service" "$USER_HOME/.config/systemd/user/usbguard-prompt.service"
+  loginctl enable-linger "$USER_NAME" >/dev/null 2>&1 || true
+  sudo -u "$USER_NAME" XDG_RUNTIME_DIR="/run/user/$(id -u "$USER_NAME")" systemctl --user daemon-reload || true
+  sudo -u "$USER_NAME" XDG_RUNTIME_DIR="/run/user/$(id -u "$USER_NAME")" systemctl --user enable --now usbguard-prompt.service \
+    || echo "Enable it from your desktop session: systemctl --user enable --now usbguard-prompt"
   echo "Allow a new device:  sudo usbguard list-devices -b ; sudo usbguard allow-device <id> -p"
 }
 
@@ -838,7 +847,7 @@ rice() {
   sudo -u "$USER_NAME" install -m 755 "$HERE/bin/KittyContrast.py" "$H/UserScripts/KittyContrast.py"
   sudo -u "$USER_NAME" install -m 755 "$HERE/bin/PowerDraw.sh" "$H/UserScripts/PowerDraw.sh"
   sudo -u "$USER_NAME" install -m 755 "$HERE/bin/SiemStats.sh" "$H/UserScripts/SiemStats.sh"
-  sudo -u "$USER_NAME" install -m 755 "$HERE/bin/soc" "$HERE/bin/avd" "$USER_HOME/.local/bin/"
+  sudo -u "$USER_NAME" install -m 755 "$HERE/bin/soc" "$HERE/bin/avd" "$HERE/bin/barpin" "$USER_HOME/.local/bin/"
   # Login screen follows the wallpaper: root helper, called from WallustSwww.sh via sudo.
   install -m 755 "$HERE/bin/sync-login-wallpaper" /usr/local/sbin/sync-login-wallpaper
   sudo -u "$USER_NAME" install -m 755 "$HERE/bin/caffeine" "$HERE/bin/powermode" "$USER_HOME/.local/bin/"

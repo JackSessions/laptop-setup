@@ -12,15 +12,19 @@ It's a personal setup shared so you can borrow ideas. **Read it before running i
 
 ![SOC Overview dashboard](docs/img/soc-overview.png)
 
-**The bar**: icons only, details on hover. Left to right: tray, SIEM alerts (red = high/critical open), power draw, battery, temperature, Wi-Fi, volume, notifications, power menu.
+**The bar**: a floating glass pill, icons only, details on hover. Left to right: workspaces, clock, pinned apps (hover the pin), tray, SIEM alerts (red = high/critical open), power draw, battery, temperature, Wi-Fi, volume, notifications, power menu.
 
-![Icon-only Waybar](docs/img/bar-icons.png)
+![Floating icon-only Waybar](docs/img/bar-icons.png)
+
+Hover the pin and your pinned apps slide out (`barpin add "Name" <glyph> <command>` to add more):
+
+![Pinned apps drawer](docs/img/bar-pins.png)
 
 ## What's inside
 
 | Area | What you get |
 |---|---|
-| **Hardening** | UFW (deny inbound, SSH/VNC only over Tailscale), fail2ban, sysctl hardening, auditd rules (RAW log format), USBGuard (block unknown USB), AIDE on `/home`, rkhunter, Lynis audit (62 -> 71 here) |
+| **Hardening** | UFW (deny inbound, SSH/VNC only over Tailscale), fail2ban, sysctl hardening, auditd rules (RAW log format), USBGuard (block unknown USB, with a **popup to allow or deny** each new device), AIDE on `/home`, rkhunter, Lynis audit (62 -> 71 here) |
 | **Home SIEM** (`siem/`) | Elasticsearch + Kibana + Filebeat in rootful Podman, localhost only, fed by **Zeek** (network), **auditd** and system logs. Capped RAM, 14-day retention |
 | **Detection-as-code** (`siem/rules/`) | 13 YAML rules mapped to MITRE ATT&CK, pushed with `siem rules`. Each one was tested by reproducing the behaviour |
 | **Sigma rules** (`siem/sigma/`) | 6 [SigmaHQ](https://github.com/SigmaHQ/sigma) rules converted to Elastic with `sigma-cli` and pushed with `siem sigma`. Only rules whose fields exist in this data are included, and why the others were skipped is in `siem/sigma/NOTICE.md` |
@@ -28,7 +32,7 @@ It's a personal setup shared so you can borrow ideas. **Read it before running i
 | **DFIR** | Velociraptor server in an unprivileged LXC container, Volatility 3, LiME memory capture (`memdump`) |
 | **Mobile research** | Rooted Android emulator (AVD) with Frida, mitmproxy, jadx, apktool and snapshots (`avd`) |
 | **Dev** | C toolkit (clang, valgrind, cppcheck, gdb), LazyVim, direnv, atuin, yazi, zellij, Podman, a global **gitleaks** pre-commit hook |
-| **Desktop** | Tap-Super app grid, wallpaper-following terminal colours, power-draw and SIEM counters in Waybar, a floating translucent Kibana "SOC workspace" |
+| **Desktop** | Tap-Super app grid, wallpaper-following terminal colours, power-draw and SIEM counters in Waybar, a floating translucent Kibana "SOC workspace", a floating glass bar with hover-to-reveal pinned apps (`barpin`) |
 | **Backups** | Timeshift (latest snapshot only) + restic to Proton Drive (keeps last 2) |
 | **Memory** | zram (7 GB, zstd) + earlyoom |
 

@@ -1,0 +1,12 @@
+[Unit]
+Description=Allow/deny popup for new USB devices blocked by USBGuard
+After=graphical-session.target
+
+[Service]
+Environment=WAYLAND_DISPLAY=wayland-1
+ExecStart=%h/.local/bin/usbguard-prompt
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

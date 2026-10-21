@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+"""Pop up an Allow / Always allow / Keep blocked prompt when USBGuard blocks a new USB device.
+
+Runs as a user service (usbguard-prompt.service). Needs: usbguard (you in IPCAllowedUsers), libnotify's notify-send
+with action support, and a notification daemon that supports actions (swaync does). Falls back to a yad dialog.
+Test the popup without touching any policy:  usbguard-prompt --test
+"""
+import os, pty, re, select, shutil, subprocess, sys, threading, time
+
+CLASSES = {  # USB interface class -> (label, risky?)
+    "01": ("audio", False), "02": ("network/serial (CDC)", True), "03": ("input (HID)", False), "06": ("camera/imaging", False),
+    "07": ("printer", False), "08": ("storage", False), "09": ("hub", False), "0e": ("video", False),
+    "e0": ("bluetooth/wireless", False), "ef": ("misc", False), "ff": ("vendor-specific", True),
+}
+
+
+def describe(rule):
+    name = (re.search(r'name "([^"]*)"', rule) or [None, ""])[1] or "(no name)"
+    vidpid = (re.search(r'\bid ([0-9a-f]{4}:[0-9a-f]{4})', rule) or [None, "?"])[1]
+    serial = (re.search(r'serial "([^"]*)"', rule) or [None, ""])[1]
+    ifs = re.search(r'with-interface (?:\{([^}]*)\}|(\S+))', rule)
+    codes = (ifs.group(1) or ifs.group(2) or "").split() if ifs else []
+    kinds, warns = [], []
+    for c in codes:
+        cls = c.split(":")[0].lower()
+        label, risky = CLASSES.get(cls, (f"class {cls}", True))
+        if label not in kinds:
+            kinds.append(label)
+        if c.lower().startswith("03:01"):
+            warns.append("It can act as a KEYBOARD: a malicious one can type commands as you.")
+        elif risky and cls == "02":
+            warns.append("It can act as a network adapter and redirect your traffic.")
+        elif risky and cls == "ff":
+            warns.append("Vendor-specific functions: unknown behaviour.")
+    body = f"{name}\nID {vidpid}" + (f"  serial {serial}" if serial else "") + f"\nClaims to be: {', '.join(kinds) or 'unknown'}"
+    if warns:
+        body += "\n⚠ " + "\n⚠ ".join(dict.fromkeys(warns))
+    return name, body
+
+
+def ask(title, body, timeout_ms=0):
+    """Dialog with three buttons. (swaync does not support clickable notification actions, so use yad.)"""
+    if shutil.which("yad"):
+        cmd = ["yad", "--title", title, "--text", body, "--image", "drive-removable-media-usb", "--borders=14",
+               "--button=Allow once:10", "--button=Always allow:11", "--button=Keep blocked:12",
+               "--center", "--on-top", "--sticky", "--no-escape", "--skip-taskbar", "--width=460"]
+        if timeout_ms:
+            cmd += ["--timeout", str(timeout_ms // 1000)]
+        rc = subprocess.run(cmd, stderr=subprocess.DEVNULL).returncode
+        return {10: "allow", 11: "always"}.get(rc, "block")
+    subprocess.run(["notify-send", "-u", "critical", title, body + "\n\n(install yad to get Allow/Deny buttons)"])
+    return "block"
+
+
+def handle(dev_id, rule):
+    name, body = describe(rule)
+    choice = ask("USB device blocked", body)
+    if choice in ("allow", "always"):
+        cmd = ["usbguard", "allow-device", dev_id] + (["-p"] if choice == "always" else [])
+        subprocess.run(cmd)
+        subprocess.run(["notify-send", "-t", "3000", "USB allowed" + (" permanently" if choice == "always" else " once"), name])
+    else:
+        subprocess.run(["notify-send", "-t", "2500", "USB kept blocked", name])
+
+
+def process(block, recent):
+    evt = "\n".join(block)
+    m = re.search(r"\[device\] (PresenceChanged|PolicyApplied): id=(\d+)", evt)
+    rule = re.search(r"device_rule=(.*)", evt)
+    if not (m and rule):
+        return
+    blocked = ("event=Insert" in evt and "target=block" in evt) or (m.group(1) == "PolicyApplied" and "target_new=block" in evt)
+    dev = m.group(2)
+    if blocked and time.time() - recent.get(dev, 0) > 30:
+        recent[dev] = time.time()
+        threading.Thread(target=handle, args=(dev, rule.group(1)), daemon=True).start()
+
+
+def watch(recent):
+    """Stream `usbguard watch` through a pty (no output buffering) and handle each event as soon as it ends."""
+    master, slave = pty.openpty()
+    p = subprocess.Popen(["usbguard", "watch"], stdout=slave, stderr=slave, close_fds=True)
+    os.close(slave)
+    buf, block = "", []
+    while p.poll() is None:
+        ready, _, _ = select.select([master], [], [], 0.4)
+        if ready:
+            try:
+                data = os.read(master, 4096).decode(errors="replace")
+            except OSError:
+                break
+            buf += data.replace("\r", "")
+            *lines, buf = buf.split("\n")
+            for line in lines:
+                if line.startswith("[") and block:
+                    process(block, recent)
+                    block = []
+                block.append(line)
+        elif block:                      # quiet for 0.4 s: the event is complete
+            process(block, recent)
+            block = []
+    os.close(master)
+
+
+def main():
+    if "--test" in sys.argv:
+        rule = 'block id 046d:c52b serial "TEST" name "Test Wireless Keyboard (not real)" with-interface { 03:01:01 03:00:00 }'
+        print("choice:", ask("USB device blocked (TEST: no policy is changed)", describe(rule)[1], 15000))
+        return
+    recent = {}
+    while True:
+        watch(recent)
+        time.sleep(3)  # usbguard restarted: reconnect
+
+
+if __name__ == "__main__":
+    main()

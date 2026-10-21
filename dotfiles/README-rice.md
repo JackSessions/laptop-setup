@@ -12,3 +12,10 @@
   `hyprctl dispatch 'hl.dsp.window.move({ workspace = 9, follow = false, window = "address:0x.." })'` (plain `dispatch workspace 9` no longer works).
 - Login screen: `sync-login-wallpaper` (root) is called from WallustSwww.sh so GDM follows the wallpaper.
 - Neovim: transparent background + ASD dashboard header live in `~/.config/nvim/lua/plugins/kool.lua`.
+
+## Floating bar, pinned apps, USB popup
+- Bar: `configs/TOP-Icons-Laptop` (margins 10/18), glass pill via CSS (`window#waybar` translucent + border-radius) and a
+  Hyprland layer rule `user-waybar-blur` in `UserConfigs/user_layer_rules.lua`.
+- Pins: `barpin add "Name" <glyph> <command>` / `barpin rm` / `barpin ls`. They live behind one pin icon (hover). Compiled to
+  `~/.config/hypr/waybar/PinModules`, included by the Waybar config.
+- USB: `usbguard-prompt` (user service) shows an Allow once / Always allow / Keep blocked dialog when USBGuard blocks a device.
