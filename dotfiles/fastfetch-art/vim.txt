@@ -1,0 +1,8 @@
+ ~
+ ~     :q
+ ~     :q!
+ ~     :wq
+ ~     ZZ
+ ~     ESC ESC ESC
+ ~     HOW DO I EXIT
+ ~     VIM

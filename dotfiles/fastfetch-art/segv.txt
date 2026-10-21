@@ -1,0 +1,6 @@
+ $ ./a.out
+ Segmentation fault
+ (core dumped)
+
+ you: *forgets malloc*
+ C:   no.

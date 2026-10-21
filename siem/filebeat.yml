@@ -1,0 +1,25 @@
+filebeat.config.modules:
+  enabled: false
+filebeat.modules:
+  - module: zeek
+    connection: { enabled: true, var.paths: ["/zeek/conn.log"] }
+    dns:        { enabled: true, var.paths: ["/zeek/dns.log"] }
+    http:       { enabled: true, var.paths: ["/zeek/http.log"] }
+    ssl:        { enabled: true, var.paths: ["/zeek/ssl.log"] }
+    notice:     { enabled: true, var.paths: ["/zeek/notice.log"] }
+    weird:      { enabled: true, var.paths: ["/zeek/weird.log"] }
+    dhcp:       { enabled: true, var.paths: ["/zeek/dhcp.log"] }
+    files:      { enabled: true, var.paths: ["/zeek/files.log"] }
+  - module: auditd
+    log: { enabled: true, var.paths: ["/hostlog/audit/audit.log"] }
+  - module: system
+    syslog: { enabled: true, var.paths: ["/hostlog/syslog"] }
+    auth:   { enabled: true, var.paths: ["/hostlog/auth.log"] }
+
+setup.kibana.host: "http://127.0.0.1:5601"
+setup.ilm.overwrite: false
+output.elasticsearch:
+  hosts: ["http://127.0.0.1:9200"]
+  username: "elastic"
+  password: "${ELASTIC_PASSWORD}"
+logging.level: warning

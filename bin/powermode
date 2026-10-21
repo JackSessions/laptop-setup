@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Switch CPU power profile (power-profiles-daemon).
+# Usage: powermode [saver|balanced|performance|cycle|status]
+set -u
+declare -A MAP=([saver]=power-saver [power-saver]=power-saver [balanced]=balanced [performance]=performance)
+cur="$(powerprofilesctl get)"
+case "${1:-status}" in
+  status) echo "$cur"; exit 0 ;;
+  cycle)  case "$cur" in power-saver) new=balanced ;; balanced) new=performance ;; *) new=power-saver ;; esac ;;
+  *)      new="${MAP[$1]:-}"; [[ -n "$new" ]] || { echo "Usage: powermode [saver|balanced|performance|cycle|status]"; exit 1; } ;;
+esac
+powerprofilesctl set "$new" && notify-send -t 2500 "Power mode" "$new" 2>/dev/null
+echo "$new"

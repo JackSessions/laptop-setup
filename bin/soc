@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Toggle the SOC workspace (9): a floating, translucent Kibana dashboard over the wallpaper.
+# Run again (or click the SIEM numbers in the bar) to go back.
+# Note: this Hyprland takes Lua dispatchers via `hyprctl dispatch 'hl.dsp...'`; targets use window = "address:0x..".
+WS=9
+URL='http://127.0.0.1:5601/app/dashboards#/view/soc-overview'
+OPACITY=0.86
+d() { hyprctl dispatch "$1" >/dev/null; }
+cur=$(hyprctl activeworkspace -j | jq -r .id)
+if [[ $cur == "$WS" ]]; then d 'hl.dsp.focus({ workspace = "previous" })'; exit 0; fi
+if ! curl -fs -m 3 -o /dev/null http://127.0.0.1:5601/api/status; then
+  notify-send -u critical "SOC" "SIEM is off. Run: siem up (takes ~2 min)"; exit 1
+fi
+find_win() { hyprctl clients -j | jq -r --argjson ws "$WS" '[.[] | select(.workspace.id==$ws and (.class|test("firefox";"i")))][0].address // empty'; }
+addr=$(find_win)
+if [[ -z $addr ]]; then
+  before=$(hyprctl clients -j | jq -r '.[].address' | sort)
+  setsid firefox --new-window "$URL" >/dev/null 2>&1 &
+  new=""
+  for _ in $(seq 80); do
+    sleep 0.5
+    new=$(comm -13 <(echo "$before") <(hyprctl clients -j | jq -r '.[].address' | sort) | head -1)
+    [[ -n $new ]] && break
+  done
+  [[ -z $new ]] && { notify-send "SOC" "Firefox window did not appear"; exit 1; }
+  addr=$new
+fi
+w="window = \"address:$addr\""
+d "hl.dsp.window.move({ workspace = $WS, follow = false, $w })"
+d "hl.dsp.focus({ workspace = $WS })"
+read -r W H < <(hyprctl monitors -j | jq -r '.[0] | "\((.width/.scale)|floor) \((.height/.scale)|floor)"')
+d "hl.dsp.window.float({ action = \"enable\", $w })"
+d "hl.dsp.window.resize({ x = $((W*80/100)), y = $((H*82/100)), exact = true, $w })"
+d "hl.dsp.window.center({ $w })"
+d "hl.dsp.window.set_prop({ prop = \"opacity\", value = $OPACITY, $w })"

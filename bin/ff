@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# fastfetch with random art: ~900 Pokémon sprites (video game characters) or a hand-made
+# game sprite / coding meme from ~/.config/fastfetch/art. Usage: ff [pokemon|meme]
+art_dir="$HOME/.config/fastfetch/art"
+cfg="$HOME/.config/fastfetch/config-pokemon.jsonc"
+mode="${1:-}"
+[[ -z $mode ]] && { (( RANDOM % 3 )) && mode=pokemon || mode=meme; }
+if [[ $mode == pokemon ]] && command -v pokemon-colorscripts >/dev/null; then
+  pokemon-colorscripts --no-title -s -r | fastfetch -c "$cfg" --logo-type file-raw --logo-height 10 --logo-width 5 --logo -
+else
+  f="$(ls "$art_dir"/*.txt | shuf -n1)"
+  fastfetch -c "$cfg" --logo-type file --logo "$f" --logo-padding-right 4
+fi

@@ -1,0 +1,7 @@
+ I use Arch btw
+ ....no wait,
+ this is Ubuntu 26.04
+ + Hyprland
+ + LazyVim
+ + 4 terminals
+ + it's fine

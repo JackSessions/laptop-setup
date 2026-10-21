@@ -1,0 +1,130 @@
+# Starter detections for this laptop. Copy a block, change the query, run: siem rules
+- id: ssh-bruteforce
+  name: SSH brute force (5+ failures from one source in 5 minutes)
+  description: Many failed SSH or sudo logins from a single source IP.
+  type: threshold
+  query: 'event.dataset : "system.auth" and event.outcome : "failure"'
+  threshold: {field: source.ip, value: 5}
+  severity: high
+  risk: 73
+  mitre: [T1110]
+  tags: [auth, ssh]
+  note: Check `source.ip` against Tailscale peers. fail2ban should already be banning it; confirm with `sudo fail2ban-client status sshd`.
+
+- id: root-login-failure
+  name: Failed login as root
+  description: root is not allowed to log in over SSH here, so any attempt is noise or an attack.
+  query: 'event.dataset : "system.auth" and user.name : "root" and event.outcome : "failure"'
+  severity: medium
+  risk: 47
+  mitre: [T1110, T1078]
+  tags: [auth]
+
+- id: sudoers-modified
+  name: sudoers file changed
+  description: A write to /etc/sudoers or /etc/sudoers.d (auditd key "sudoers").
+  query: 'event.dataset : "auditd.log" and auditd.log.key : sudoers*'
+  severity: high
+  risk: 73
+  mitre: [T1548]
+  tags: [auditd, privesc]
+  note: Expected when you edit sudoers yourself. Otherwise investigate who/what wrote it (`process.name`).
+
+- id: account-files-modified
+  name: passwd / shadow / group modified
+  description: Changes to account databases (auditd key "identity").
+  query: 'event.dataset : "auditd.log" and auditd.log.key : identity*'
+  severity: high
+  risk: 73
+  mitre: [T1136, T1098]
+  tags: [auditd, persistence]
+
+- id: systemd-unit-written
+  name: New or changed systemd service
+  description: A file was written under /etc/systemd/system (auditd key "systemd"), a classic persistence spot.
+  query: 'event.dataset : "auditd.log" and auditd.log.key : systemd*'
+  severity: medium
+  risk: 47
+  mitre: [T1543]
+  tags: [auditd, persistence]
+
+- id: cron-modified
+  name: Cron job created or changed
+  description: Writes to cron locations (auditd key "cron").
+  query: 'event.dataset : "auditd.log" and auditd.log.key : cron*'
+  severity: medium
+  risk: 47
+  mitre: [T1053]
+  tags: [auditd, persistence]
+
+- id: kernel-module-loaded
+  name: Kernel module loaded or removed
+  description: init_module / finit_module / delete_module syscalls (auditd key "modules"). Expected for VMware, LiME, DKMS.
+  query: 'event.dataset : "auditd.log" and auditd.log.key : modules*'
+  severity: medium
+  risk: 47
+  mitre: [T1547]
+  tags: [auditd, kernel]
+
+- id: pam-config-changed
+  name: PAM configuration changed
+  description: Changes under /etc/pam.d can backdoor authentication (auditd key "pam").
+  query: 'event.dataset : "auditd.log" and auditd.log.key : pam*'
+  severity: high
+  risk: 73
+  mitre: [T1556]
+  tags: [auditd, auth]
+
+- id: dns-txt-burst
+  name: DNS TXT query burst (possible tunnelling)
+  description: 40+ TXT lookups in 5 minutes from this host can mean DNS-based C2 or exfiltration.
+  type: threshold
+  query: 'event.dataset : "zeek.dns" and dns.question.type : "TXT"'
+  threshold: {field: host.name, value: 40}
+  severity: medium
+  risk: 47
+  mitre: [T1071]
+  tags: [network, dns]
+
+- id: uncommon-c2-ports
+  name: Outbound connection to a classic C2 / backdoor port
+  description: Connections to ports commonly used by reverse shells and IRC bots.
+  query: 'event.dataset : "zeek.connection" and destination.port : (4444 or 1337 or 31337 or 6667 or 9001 or 5555)'
+  severity: medium
+  risk: 47
+  mitre: [T1571]
+  tags: [network]
+  note: Android debug (5555) is expected while the AVD is running.
+
+- id: port-scan
+  name: Port scan (100+ distinct ports from one source in 5 minutes)
+  description: One source touching many destination ports.
+  type: threshold
+  query: 'event.dataset : "zeek.connection"'
+  threshold:
+    field: source.ip
+    value: 100
+    cardinality: {field: destination.port, value: 100}
+  severity: medium
+  risk: 47
+  mitre: [T1046]
+  tags: [network]
+  note: Your own nmap runs will trigger this. That's a good test of the rule.
+
+- id: zeek-notice
+  name: Zeek notice raised
+  description: Zeek flagged something (scan, invalid certificate, weird protocol use).
+  query: 'event.dataset : "zeek.notice"'
+  severity: low
+  risk: 21
+  tags: [network, zeek]
+
+- id: usbguard-blocked-device
+  name: USBGuard blocked a USB device
+  description: A new USB device was plugged in and blocked by policy.
+  query: 'event.dataset : "system.syslog" and message : "usbguard" and message : "block"'
+  severity: medium
+  risk: 47
+  mitre: [T1200]
+  tags: [usb, physical]
+  note: If it was you, run `sudo usbguard list-devices -b` then `sudo usbguard allow-device <id> -p`.

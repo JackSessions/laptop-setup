@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Capture this machine's RAM with LiME for analysis with Volatility 3 (vol).
+# Usage: sudo memdump [output-dir]      (default /var/forensics)
+# Needs ~RAM-sized free disk space (14 GB here). Also saves hashes and the exact kernel/OS details,
+# because Volatility needs the kernel version to build its symbol table.
+set -euo pipefail
+[[ $EUID -eq 0 ]] || { echo "Run with sudo"; exit 1; }
+out="${1:-/var/forensics}"; install -d -m 700 "$out"
+ts="$(date +%Y%m%d-%H%M%S)"; base="$out/$(hostname)-$ts"
+need=$(awk '/MemTotal/{print int($2*1.05)}' /proc/meminfo); free=$(df --output=avail -k "$out" | tail -1)
+(( free > need )) || { echo "Not enough free space in $out"; exit 1; }
+modprobe lime "path=$base.lime format=lime" || { echo "lime failed to load: is the Secure Boot MOK key enrolled? (see dmesg)"; exit 1; }
+rmmod lime 2>/dev/null || true
+{ uname -a; cat /etc/os-release; date -u; } > "$base.info"
+sha256sum "$base.lime" | tee "$base.sha256"
+chmod 600 "$base".*
+echo "Dump: $base.lime"
+echo "Analyse: vol -f $base.lime linux.pslist   (needs a symbol table for kernel $(uname -r); see MEMORY-FORENSICS.md)"

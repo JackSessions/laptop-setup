@@ -1,0 +1,6 @@
+ $ nmap -sV 192.168.1.0/24
+ Starting Nmap...
+ Host is up (0.0004s)
+ 22/tcp  open  ssh
+ 80/tcp  open  http
+ only on YOUR network

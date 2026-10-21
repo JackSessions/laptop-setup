@@ -1,0 +1,7 @@
+ ┌──────────────────┐
+ │ Copied from      │
+ │ Stack Overflow   │
+ │ ✓ compiles       │
+ │ ? no idea why    │
+ └──────────────────┘
+ SHIP IT

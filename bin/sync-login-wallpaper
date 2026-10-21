@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Make the GDM login screen use the current desktop wallpaper (dimmed + softly blurred for readability).
+# Takes no arguments on purpose: it only ever reads the invoking user's .wallpaper_current.
+set -euo pipefail
+u="${SUDO_USER:-void}"
+src="$(getent passwd "$u" | cut -d: -f6)/.config/hypr/wallpaper_effects/.wallpaper_current"
+[[ -r $src ]] || exit 0
+out=/usr/share/backgrounds/kool/login.png
+tmp="$(mktemp --suffix=.png)"
+magick "$src[0]" -resize 1920x1200^ -gravity center -extent 1920x1200 -blur 0x3 -modulate 65,110 "$tmp"
+install -d /usr/share/backgrounds/kool
+install -m 644 "$tmp" "$out"; rm -f "$tmp"
+dconf update

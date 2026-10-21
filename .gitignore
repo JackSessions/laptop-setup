@@ -1,0 +1,21 @@
+# Secrets and machine-specific state - never commit
+velociraptor/
+dl/
+src/
+*.log
+setup.log
+lynis-audit.txt
+lynis-report.dat
+*.bak
+*.bak-*
+setup.sh.bak*
+siem/backup-stock-filebeat-dashboards.ndjson
+*.env
+.env
+# symlinks into the Obsidian vault (notes live in the vault, backed up with the home folder)
+LAZYVIM-CHEATSHEET.md
+MEMORY-FORENSICS.md
+
+# third-party assets (theme/wallpaper): not redistributed here
+grub-theme/
+login/

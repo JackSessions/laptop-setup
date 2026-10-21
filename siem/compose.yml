@@ -1,0 +1,56 @@
+# Elastic stack for Zeek (network), auditd and system logs. Everything listens on 127.0.0.1 only.
+# Run rootful via the `siem` helper:  siem up | down | status | pass
+name: siem
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELK_VERSION}
+    network_mode: host
+    restart: unless-stopped
+    mem_limit: 2g
+    environment:
+      discovery.type: single-node
+      network.host: 127.0.0.1
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.enabled: "false"
+      xpack.ml.enabled: "false"
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
+      cluster.routing.allocation.disk.watermark.low: 90%
+      cluster.routing.allocation.disk.watermark.high: 93%
+      cluster.routing.allocation.disk.watermark.flood_stage: 96%
+    volumes:
+      - /var/lib/siem/es:/usr/share/elasticsearch/data
+    ulimits: { memlock: { soft: -1, hard: -1 } }
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${ELK_VERSION}
+    network_mode: host
+    restart: unless-stopped
+    mem_limit: 1500m
+    depends_on: [elasticsearch]
+    environment:
+      SERVER_HOST: 127.0.0.1
+      ELASTICSEARCH_HOSTS: http://127.0.0.1:9200
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_PASSWORD: ${KIBANA_PASSWORD}
+      XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: ${KIBANA_KEY}
+      XPACK_SECURITY_ENCRYPTIONKEY: ${KIBANA_KEY}
+      XPACK_REPORTING_ENCRYPTIONKEY: ${KIBANA_KEY}
+      TELEMETRY_OPTIN: "false"
+      NODE_OPTIONS: --max-old-space-size=768
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:${ELK_VERSION}
+    network_mode: host
+    restart: unless-stopped
+    user: root
+    mem_limit: 400m
+    depends_on: [elasticsearch]
+    command: ["filebeat", "-e", "--strict.perms=false"]
+    environment:
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+    volumes:
+      - /etc/siem/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - /opt/zeek/spool/zeek:/zeek:ro
+      - /var/log:/hostlog:ro
+      - /var/lib/siem/filebeat:/usr/share/filebeat/data

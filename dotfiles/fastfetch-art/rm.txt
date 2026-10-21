@@ -1,0 +1,6 @@
+ $ rm -rf /
+ ┌───────────────────┐
+ │ BACKUPS? WHAT     │
+ │ BACKUPS?          │
+ └───────────────────┘
+ (this is why Timeshift exists)

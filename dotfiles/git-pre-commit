@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Block commits that contain secrets (API keys, tokens, private keys). Bypass once: git commit --no-verify
+command -v gitleaks >/dev/null || exit 0
+gitleaks protect --staged --redact --no-banner -v || {
+  echo "gitleaks: possible secret in staged changes - commit blocked." >&2
+  exit 1
+}

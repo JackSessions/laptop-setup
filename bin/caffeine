@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Keep the screen awake: stops hypridle (screen lock/dim/suspend) while "on".
+# Usage: caffeine [on|off|toggle|status]   (default: toggle)
+set -u
+notify() { notify-send -t 2500 -i "$2" "Caffeine" "$1" 2>/dev/null || true; }
+on()  { pkill -x hypridle || true; notify "On - screen will stay awake" caffeine-cup-full; }
+off() { pgrep -x hypridle >/dev/null || { setsid hypridle >/dev/null 2>&1 & }; notify "Off - normal idle/lock" caffeine-cup-empty; }
+case "${1:-toggle}" in
+  on)     on ;;
+  off)    off ;;
+  status) pgrep -x hypridle >/dev/null && echo off || echo on ;;
+  toggle) if pgrep -x hypridle >/dev/null; then on; else off; fi ;;
+  *) echo "Usage: caffeine [on|off|toggle|status]"; exit 1 ;;
+esac

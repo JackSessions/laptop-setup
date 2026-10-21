@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Rooted Android emulator for bug-bounty / mobile research.
+# Usage: avd start [snapshot]  | stop | reset | snap <name> | shell | frida | proxy [host:port] | status
+export ANDROID_HOME="$HOME/Android/Sdk"
+export PATH="$PATH:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$HOME/.local/bin"
+NAME=bounty-34
+snap="${2:-tooling}"
+case "${1:-status}" in
+  start)  pgrep -f "qemu.*$NAME" >/dev/null && { echo "already running"; exit 0; }
+          flags=(-avd $NAME -no-audio -gpu swiftshader_indirect -memory 3072)
+          [[ -n "${HEADLESS:-}" ]] && flags+=(-no-window)
+          setsid emulator "${flags[@]}" -snapshot "$snap" >/tmp/avd.log 2>&1 &
+          adb wait-for-device; until [[ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]]; do sleep 2; done
+          adb root >/dev/null; sleep 2; echo "up, rooted: $(adb shell id | cut -d' ' -f1)" ;;
+  stop)   adb emu kill 2>/dev/null || true ;;
+  reset)  "$0" stop; sleep 3; "$0" start clean-boot ;;
+  snap)   adb emu avd snapshot save "${2:?name}" ;;
+  shell)  adb root >/dev/null; adb shell ;;
+  frida)  adb root >/dev/null; adb shell 'pgrep frida-server >/dev/null || /data/local/tmp/frida-server -D'; frida-ps -U | head -15 ;;
+  proxy)  adb shell settings put global http_proxy "${2:-10.0.2.2:8080}"; echo "proxy -> ${2:-10.0.2.2:8080} (10.0.2.2 = this laptop; run mitmproxy or Burp on :8080). Remove: avd proxy :0" ;;
+  status) adb devices | sed 1d | grep . || echo "emulator not running" ;;
+  *)      sed -n '2,3p' "$0" ;;
+esac

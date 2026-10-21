@@ -1,0 +1,5 @@
+ error: expected ';'
+ before '}' token
+
+       ;
+   You had one job
