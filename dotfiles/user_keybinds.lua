@@ -116,15 +116,14 @@ if not submap then
 end
 
 
--- Tap the Super (Windows) key on its own to open the app launcher.
--- A release bind only fires if no other key was pressed, so SUPER+<key> combos still work.
+-- Frosted fullscreen app grid on Super+Shift+D (Super+D is still the compact launcher). Press again to close.
 bind(
-  "SUPER",
-  "SUPER_L",
+  "SUPER SHIFT",
+  "D",
   exec_cmd(
     "pgrep -x rofi >/dev/null && { pkill -x rofi; exit 0; }; $HOME/.config/hypr/scripts/RofiFocusedWallpaperLink.sh >/dev/null 2>&1 || true; rofi -show drun -theme $HOME/.config/hypr/rofi/themes/KooL_style-3-Fullscreen-v2.rasi"
   ),
-  { description = "frosted fullscreen app grid (tap Super)", release = true }
+  { description = "frosted fullscreen app grid" }
 )
 
 -- Caffeine: keep the screen awake (toggles hypridle). Cycle CPU power profile: saver/balanced/performance.

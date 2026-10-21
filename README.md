@@ -32,7 +32,7 @@ Hover the pin and your pinned apps slide out (`barpin add "Name" <glyph> <comman
 | **DFIR** | Velociraptor server in an unprivileged LXC container, Volatility 3, LiME memory capture (`memdump`) |
 | **Mobile research** | Rooted Android emulator (AVD) with Frida, mitmproxy, jadx, apktool and snapshots (`avd`) |
 | **Dev** | C toolkit (clang, valgrind, cppcheck, gdb), LazyVim, direnv, atuin, yazi, zellij, Podman, a global **gitleaks** pre-commit hook |
-| **Desktop** | Tap-Super app grid, wallpaper-following terminal colours, power-draw and SIEM counters in Waybar, a floating translucent Kibana "SOC workspace", a floating glass bar with hover-to-reveal pinned apps (`barpin`) |
+| **Desktop** | Tap-Super app grid, wallpaper-following terminal colours, power-draw and SIEM counters in Waybar, a floating translucent Kibana "SOC workspace", a floating glass bar with hover-to-reveal pinned apps (`barpin`), an auto-hiding dock with `dockpin` |
 | **Backups** | Timeshift (latest snapshot only) + restic to Proton Drive (keeps last 2) |
 | **Memory** | zram (7 GB, zstd) + earlyoom |
 

@@ -847,7 +847,7 @@ rice() {
   sudo -u "$USER_NAME" install -m 755 "$HERE/bin/KittyContrast.py" "$H/UserScripts/KittyContrast.py"
   sudo -u "$USER_NAME" install -m 755 "$HERE/bin/PowerDraw.sh" "$H/UserScripts/PowerDraw.sh"
   sudo -u "$USER_NAME" install -m 755 "$HERE/bin/SiemStats.sh" "$H/UserScripts/SiemStats.sh"
-  sudo -u "$USER_NAME" install -m 755 "$HERE/bin/soc" "$HERE/bin/avd" "$HERE/bin/barpin" "$USER_HOME/.local/bin/"
+  sudo -u "$USER_NAME" install -m 755 "$HERE/bin/soc" "$HERE/bin/avd" "$HERE/bin/barpin" "$HERE/bin/dockpin" "$USER_HOME/.local/bin/"
   # Login screen follows the wallpaper: root helper, called from WallustSwww.sh via sudo.
   install -m 755 "$HERE/bin/sync-login-wallpaper" /usr/local/sbin/sync-login-wallpaper
   sudo -u "$USER_NAME" install -m 755 "$HERE/bin/caffeine" "$HERE/bin/powermode" "$USER_HOME/.local/bin/"

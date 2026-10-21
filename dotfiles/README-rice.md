@@ -19,3 +19,6 @@
 - Pins: `barpin add "Name" <glyph> <command>` / `barpin rm` / `barpin ls`. They live behind one pin icon (hover). Compiled to
   `~/.config/hypr/waybar/PinModules`, included by the Waybar config.
 - USB: `usbguard-prompt` (user service) shows an Allow once / Always allow / Keep blocked dialog when USBGuard blocks a device.
+- Dock: auto-hides at the bottom edge by default (`~/.config/hypr/dock-mode` = `auto` or `always`); `dockpin add|rm|ls|mode`.
+  Launch flags live in `~/.config/hypr/scripts/Dock.sh` (`-d` auto-hide, no `-x`, so windows use the full screen).
+- Keys: Super+D compact launcher, Super+Shift+D frosted fullscreen grid (the tap-Super trigger was removed).
