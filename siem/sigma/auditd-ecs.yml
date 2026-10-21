@@ -1,0 +1,24 @@
+# Maps Sigma's Linux auditd fields onto the ECS fields Filebeat's auditd module produces.
+# Only executable/command-based rules can match: file paths live on separate PATH records.
+name: Linux auditd to ECS (Filebeat)
+priority: 20
+transformations:
+  - id: field_names
+    type: field_name_mapping
+    mapping:
+      exe: process.executable
+      comm: process.name
+      key: auditd.log.key
+  - id: drop_record_type
+    type: drop_detection_item
+    field_name_conditions:
+      - type: include_fields
+        fields: [type]
+  - id: only_auditd_dataset
+    type: add_condition
+    conditions:
+      event.dataset: auditd.log
+    rule_conditions:
+      - type: logsource
+        product: linux
+        service: auditd

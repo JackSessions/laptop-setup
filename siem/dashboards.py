@@ -65,7 +65,9 @@ def lens(title, vtype, columns, visualization, query=""):
 
 
 def metric(title, query, label="Events"):
-    return lens(title, "lnsMetric", [("c_y", c_count(label))],
+    col = c_count(label)
+    col["params"]["emptyAsNull"] = False   # show 0 instead of N/A when nothing matches
+    return lens(title, "lnsMetric", [("c_y", col)],
                 {"layerId": "l1", "layerType": "data", "metricAccessor": "c_y"}, query)
 
 

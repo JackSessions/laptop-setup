@@ -19,3 +19,6 @@ MEMORY-FORENSICS.md
 # third-party assets (theme/wallpaper): not redistributed here
 grub-theme/
 login/
+
+__pycache__/
+*.pyc

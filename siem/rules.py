@@ -39,7 +39,9 @@ TECHNIQUES = {
     "T1547": ("Boot or Logon Autostart Execution", "TA0003"), "T1556": ("Modify Authentication Process", "TA0006"),
     "T1071": ("Application Layer Protocol", "TA0011"), "T1571": ("Non-Standard Port", "TA0011"),
     "T1046": ("Network Service Discovery", "TA0007"), "T1200": ("Hardware Additions", "TA0001"),
-    "T1078": ("Valid Accounts", "TA0001"),
+    "T1078": ("Valid Accounts", "TA0001"), "T1496": ("Resource Hijacking", "TA0040"),
+    "T1048": ("Exfiltration Over Alternative Protocol", "TA0010"), "T1105": ("Ingress Tool Transfer", "TA0011"),
+    "T1569": ("System Services", "TA0002"), "T1095": ("Non-Application Layer Protocol", "TA0011"),
 }
 
 
@@ -81,7 +83,7 @@ def threat(ids):
 def to_kibana(r):
     body = {
         "rule_id": r["id"], "name": r["name"], "description": r.get("description", r["name"]),
-        "type": r.get("type", "query"), "language": "kuery", "query": r["query"], "index": ["filebeat-*"],
+        "type": r.get("type", "query"), "language": r.get("language", "kuery"), "query": r["query"], "index": ["filebeat-*"],
         "severity": r.get("severity", "medium"), "risk_score": int(r.get("risk", 50)),
         "interval": r.get("interval", "5m"), "from": "now-6m", "enabled": r.get("enabled", True),
         "tags": r.get("tags", []), "threat": threat(r.get("mitre")), "note": r.get("note", ""),

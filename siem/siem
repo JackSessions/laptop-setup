@@ -1,16 +1,31 @@
 #!/usr/bin/env bash
-# Control the local SIEM (Elastic stack in Podman). Usage: siem up|down|status|pass|url|dashboards|rules [--list]
+# Control the local SIEM (Elastic stack in Podman). Usage: siem up | down [--all] | status | pass | url | dashboards | rules | sigma [--list]
 set -euo pipefail
 D=/etc/siem
 c() { sudo podman-compose --env-file $D/.env -f $D/compose.yml "$@"; }
 case "${1:-status}" in
-  up)     c up -d; echo "Kibana: http://127.0.0.1:5601  (user: elastic, password: siem pass). Takes ~1-2 min to start." ;;
-  down)   c down ;;
-  status) sudo podman ps --filter label=io.podman.compose.project=siem --format '{{.Names}}  {{.Status}}'
+  up)     c up -d
+          # Velociraptor (DFIR server in an LXC container + this laptop's client) comes up with the SIEM.
+          if command -v lxc-info >/dev/null && sudo lxc-info -n velociraptor >/dev/null 2>&1; then
+            sudo lxc-info -n velociraptor -sH 2>/dev/null | grep -q RUNNING || { sudo lxc-start -n velociraptor && echo "Velociraptor container started"; }
+            sudo systemctl start velociraptor-client 2>/dev/null || true
+          fi
+          echo "Kibana:       http://127.0.0.1:5601   (user: elastic, password: siem pass). ~2 min to start."
+          echo "Velociraptor: https://10.0.3.10:8889  (user: admin)" ;;
+  down)   c down
+          if [[ "${2:-}" == "--all" ]]; then
+            sudo systemctl stop velociraptor-client 2>/dev/null || true
+            sudo lxc-stop -n velociraptor 2>/dev/null && echo "Velociraptor stopped"
+          else
+            echo "Velociraptor left running (it is light). Stop it too with: siem down --all"
+          fi ;;
+  status) printf 'velociraptor  %s (client: %s)\n' "$(sudo lxc-info -n velociraptor -sH 2>/dev/null || echo not-installed)" "$(systemctl is-active velociraptor-client 2>/dev/null)"
+          sudo podman ps --filter label=io.podman.compose.project=siem --format '{{.Names}}  {{.Status}}'
           curl -fs -u "elastic:$(sudo sed -n 's/^ELASTIC_PASSWORD=//p' $D/.env)" 127.0.0.1:9200/_cat/indices?h=index,docs.count,store.size 2>/dev/null | sort | tail -15 || true ;;
   pass)   sudo sed -n 's/^ELASTIC_PASSWORD=//p' $D/.env ;;
   url)    echo http://127.0.0.1:5601 ;;
   dashboards) python3 -I "${SIEM_DIR:-$HOME/laptop-setup/siem}/dashboards.py" ;;
   rules)  shift; python3 -I "${SIEM_DIR:-$HOME/laptop-setup/siem}/rules.py" "$@" ;;
-  *)      echo "Usage: siem up|down|status|pass|url|dashboards|rules [--list]"; exit 1 ;;
+  sigma)  shift; python3 -I "${SIEM_DIR:-$HOME/laptop-setup/siem}/sigma.py" "$@" ;;
+  *)      echo "Usage: siem up | down [--all] | status | pass | url | dashboards | rules | sigma [--list]"; exit 1 ;;
 esac

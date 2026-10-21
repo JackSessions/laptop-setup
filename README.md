@@ -6,6 +6,16 @@ It's a personal setup shared so you can borrow ideas. **Read it before running i
 
 > Built and tested piece by piece on one HP laptop (12th-gen Intel, 14 GB RAM). It has **not** been run top to bottom on a clean machine yet, so expect to adjust things. Issues and PRs welcome.
 
+## Screenshots
+
+**The SOC workspace**: a floating, translucent Kibana dashboard over the wallpaper (one key press, `soc`). Data is from this laptop's own Zeek, auditd and syslog.
+
+![SOC Overview dashboard](docs/img/soc-overview.png)
+
+**The bar**: icons only, details on hover. Left to right: tray, SIEM alerts (red = high/critical open), power draw, battery, temperature, Wi-Fi, volume, notifications, power menu.
+
+![Icon-only Waybar](docs/img/bar-icons.png)
+
 ## What's inside
 
 | Area | What you get |
@@ -13,6 +23,7 @@ It's a personal setup shared so you can borrow ideas. **Read it before running i
 | **Hardening** | UFW (deny inbound, SSH/VNC only over Tailscale), fail2ban, sysctl hardening, auditd rules (RAW log format), USBGuard (block unknown USB), AIDE on `/home`, rkhunter, Lynis audit (62 -> 71 here) |
 | **Home SIEM** (`siem/`) | Elasticsearch + Kibana + Filebeat in rootful Podman, localhost only, fed by **Zeek** (network), **auditd** and system logs. Capped RAM, 14-day retention |
 | **Detection-as-code** (`siem/rules/`) | 13 YAML rules mapped to MITRE ATT&CK, pushed with `siem rules`. Each one was tested by reproducing the behaviour |
+| **Sigma rules** (`siem/sigma/`) | 6 [SigmaHQ](https://github.com/SigmaHQ/sigma) rules converted to Elastic with `sigma-cli` and pushed with `siem sigma`. Only rules whose fields exist in this data are included, and why the others were skipped is in `siem/sigma/NOTICE.md` |
 | **Dashboards-as-code** (`siem/dashboards.py`) | Three Lens dashboards (SOC Overview, Network/Zeek, Host Security), pushed with `siem dashboards` |
 | **DFIR** | Velociraptor server in an unprivileged LXC container, Volatility 3, LiME memory capture (`memdump`) |
 | **Mobile research** | Rooted Android emulator (AVD) with Frida, mitmproxy, jadx, apktool and snapshots (`avd`) |
@@ -49,6 +60,7 @@ siem up          # start Elasticsearch, Kibana, Filebeat (~2 min, ~3 GB RAM)
 siem pass        # print the generated 'elastic' password
 siem dashboards  # (re)build the dashboards
 siem rules       # (re)push the detection rules   |  siem rules --list
+siem sigma       # convert + push the Sigma rules (needs: pipx install sigma-cli && sigma plugin install elasticsearch)
 siem down        # stop it to free RAM
 ```
 
@@ -62,6 +74,8 @@ Kibana: `http://127.0.0.1:5601`. Write a rule by adding a block to `siem/rules/*
   risk: 47
   mitre: [T1571]
 ```
+
+Sigma works the same way: drop a Sigma `.yml` into `siem/sigma/rules/`, run `siem sigma`. It picks the right field mapping (`ecs_zeek_beats` for Zeek, `siem/sigma/auditd-ecs.yml` for auditd). A Sigma rule is only useful if your logs contain the fields it checks, so check with `--list` and test it.
 
 Then test it by actually doing the thing. That caught a real bug here: Ubuntu's default *enriched* auditd format mangles the rule-key field Filebeat reads, so every auditd rule silently never fired until `log_format = RAW` was set.
 
@@ -84,4 +98,4 @@ backup/         restic-to-Proton-Drive scripts
 
 ## Licence
 
-MIT for everything original here (see `LICENSE`). Third-party tools and the Pokémon sprites shown by `ff` (from `pokemon-colorscripts`) keep their own licences. Game and meme ASCII art in `dotfiles/fastfetch-art` is hand-drawn fan art for personal use.
+MIT for everything original here (see `LICENSE`). Sigma rules are from SigmaHQ under the Detection Rule License 1.1 (see `siem/sigma/NOTICE.md`). Third-party tools and the Pokémon sprites shown by `ff` (from `pokemon-colorscripts`) keep their own licences. Game and meme ASCII art in `dotfiles/fastfetch-art` is hand-drawn fan art for personal use.
